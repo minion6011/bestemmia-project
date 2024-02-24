@@ -1,6 +1,6 @@
 # 💣 bestemmia-project 💣
 
-#### 🤖 Bot di fiocco per discord
+#### 🤖 Bot di fiocco09123scp per discord
 
 #### 🛜 Hosting Provided by: Coso_Man
 
