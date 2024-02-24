@@ -1,11 +1,11 @@
-# bestemmia-project
+# 💣 bestemmia-project 💣
 
-Bot di fiocco per discord
+### 🤖 Bot di fiocco per discord
 
-Hosting Provided by: Coso_Man
+### 🛜 Hosting Provided by: Coso_Man
 
 
-#file nel hosting:
+# 📁 file nel hosting:
 
 - config.json
 - id.json
