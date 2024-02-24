@@ -7,12 +7,63 @@ from random import choice
 from discord.ext import commands, tasks
 from discord import ui
 from discord import app_commands
+
+
 intents = discord.Intents.default()
 intents.message_content = True
 
 
 
 client = commands.Bot(command_prefix=("!"), intents=intents)
+
+#--- Cose per Hosting (Non toccare fiocco)
+
+h_id = [1181630796759564358, 814224911005646888]
+statuschannel = 1210908476868395058
+
+
+
+
+is_me = commands.check(lambda ctx: ctx.author.id in h_id)
+
+import json 
+
+with open("config.json") as f:
+    try:
+        data = json.load(f)
+    except json.decoder.JSONDecodeError as e:
+        print("Errore in config.json")
+        print(e)
+        exit(1)
+
+
+@client.event
+async def on_ready():
+	print(f"Bot logged into {client.user}.")
+	channel = client.get_channel(statuschannel)
+	embed = discord.Embed(title=f"**Bot - Online 🟢 - Start Event**", color=discord.Color.green())
+	await channel.send(embed=embed)
+
+
+
+@client.command()
+@is_me
+async def update(ctx):
+	embed = discord.Embed(title="Reloading system...", color=0x2c2f33)
+	embed.set_image(url="https://support.discord.com/hc/en-us/article_attachments/206303208/eJwVyksOwiAQANC7sJfp8Ke7Lt15A0MoUpJWGmZcGe-ubl_eW7zGLmaxMZ80A6yNch-rJO4j1SJr73Uv6Wwkcz8gMae8HeXJBOjC5NEap42dokUX_4SotI8GVfBaYYDldr3n3y_jomRtD_H5ArCeI9g.zGz1JSL-9DXgpkX_SkmMDM8NWGg.gif")
+	embed.add_field(name = ':globe_with_meridians: **Ping**', value = f'{round(client.latency * 1000)}ms')
+	await ctx.send(embed=embed, delete_after=4)
+	await asyncio.sleep(5)
+	channel = client.get_channel(statuschannel)
+	embed = discord.Embed(title=f"**Bot - Riavvio 🟡 - Update**", color=discord.Color.gold())
+	await channel.send(embed=embed)
+	exit(1)
+
+
+#---
+
+
+
 
     
 
@@ -251,4 +302,8 @@ async def data_delete(ctx):
 
 
 
-client.run("MTIwNDg5NDc0MjA5ODQ4MTE3Mg.GbLAuP.V_FLx9SK-jJBM9YSLiQGHtBWMcttzz-YGRihys")
+
+
+
+token_json = data["discord_token"]
+client.run(token_json)
