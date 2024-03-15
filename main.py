@@ -12,10 +12,7 @@ from discord import app_commands
 intents = discord.Intents.default()
 intents.message_content = True
 
-
-
-client = commands.Bot(command_prefix=("!"), intents=intents)
-
+prefix = "!"
 
 
 class PersistentViewBot(commands.Bot): 
