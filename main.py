@@ -41,11 +41,6 @@ client = PersistentViewBot()
 
 
 
-@client.event
-async def on_ready():
-	print(f"Bot logged into {client.user}.")
-	slash_sync = await client.tree.sync()
-	print(f"Synced app command (tree) {len(slash_sync)}.")
 
 
 
@@ -206,6 +201,13 @@ async def update(ctx):
 	await channel.send(embed=embed)
 	exit(1)
 
+
+
+@client.event
+async def on_ready():
+	print(f"Bot logged into {client.user}.")
+	slash_sync = await client.tree.sync()
+	print(f"Synced app command (tree) {len(slash_sync)}.")
 
 #---
 
