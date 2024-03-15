@@ -16,6 +16,153 @@ intents.message_content = True
 
 client = commands.Bot(command_prefix=("!"), intents=intents)
 
+
+
+class PersistentViewBot(commands.Bot): 
+    def __init__(self):
+        intents = discord.Intents.default()
+        intents.message_content = True
+        super().__init__(command_prefix=prefix, intents=intents)
+    async def setup_hook(self) -> None:
+        #verify_view
+
+        view_verify_open = discord.ui.View(timeout=None)
+        view_verify_open.add_item(Open_Ticket_Button(label=None))
+        self.add_view(view_verify_open)
+
+        self.add_view(Close_Ticket_Button())
+
+client = PersistentViewBot() 
+
+#- ticket start
+
+
+
+
+
+
+@client.event
+async def on_ready():
+	print(f"Bot logged into {client.user}.")
+	slash_sync = await client.tree.sync()
+	print(f"Synced app command (tree) {len(slash_sync)}.")
+
+
+
+
+
+
+class TicketModal(ui.Modal, title='Setup Ticket'):
+    title_name = ui.TextInput(label='Titolo messaggio',required=True,placeholder='Titolo messaggio...', max_length=50)
+    description_name = ui.TextInput(label='Descrizione messaggio',required=True, style=discord.TextStyle.paragraph, max_length=300,placeholder='Descrizione messaggio...')
+    button_name = ui.TextInput(label='Testo del bottone',required=True, placeholder='Testo del bottone...', max_length=50)
+    async def on_submit(self, interaction: discord.Interaction):
+        channel = interaction.channel
+
+        embed_r = discord.Embed(title='Il sistema Ticket è stato inserito in questo canale', color=discord.Color.green())
+        await interaction.response.send_message(embed=embed_r, ephemeral=True)
+
+        embed = discord.Embed(title=f"{self.children[0].value}",description=f"{self.children[1].value}", color=discord.Color.green())
+        label = str(self.children[2].value)
+        view = discord.ui.View(timeout=None)
+        view.add_item(Open_Ticket_Button(label))
+        await channel.send(embed=embed, view=view)
+        channel_id = interaction.channel.id
+        with open('ticket_channels.json', 'r') as f:
+            channels = json.load(f)
+        channels[str(channel_id)] = True
+        with open('ticket_channels.json', 'w') as f:
+            json.dump(channels, f)
+
+
+
+class Open_Ticket_Button(discord.ui.Button):
+    def __init__(self,label):
+        super().__init__(label=label, emoji="✉️", style=discord.ButtonStyle.green, custom_id="persistant_button:ticket_open")
+
+    async def callback(self, interaction: discord.Interaction):
+        with open('ticket_channels.json', 'r') as f:
+            channels = json.load(f)
+
+        if str(interaction.channel.id) in channels:
+            embed_r = discord.Embed(title=f'Il Ticket è stato aperto', color=discord.Color.green())
+            await interaction.response.send_message(embed=embed_r,ephemeral=True)  
+            guild = interaction.guild
+            ticket_channel = await guild.create_text_channel(name=f'ticket-{interaction.user.name}')
+            await ticket_channel.set_permissions(guild.get_role(guild.id), send_messages=False, read_messages=False)
+            await ticket_channel.set_permissions(interaction.user, attach_files=True, send_messages=True, read_messages=True, read_message_history=True, add_reactions=True)
+            for role in guild.roles:
+                if role.permissions.moderate_members:
+                    await ticket_channel.set_permissions(role, attach_files=True, send_messages=True, read_messages=True, read_message_history=True, add_reactions=True)
+            embed = discord.Embed(title=f'**`{interaction.user.name}` - Ticket**', color=discord.Color.blue())
+            await ticket_channel.send(embed=embed, view=Close_Ticket_Button())
+        else:
+            embed = discord.Embed(title='Errore: Questo canale è già stato impostato per questo canale', color=discord.Color.red())
+            await interaction.response.send_message(embed=embed,ephemeral=True)
+
+
+class Close_Ticket_Button(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label='Chiudi Ticket', emoji="🔒", style=discord.ButtonStyle.red, custom_id='persistant_button:ticket_close')
+    async def close_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.guild_permissions.moderate_members:
+            if 'ticket-' in interaction.channel.name:
+                embed = discord.Embed(title='Il ticket verrà chiuso tra 5 secondi', color=discord.Color.dark_blue())
+                await interaction.response.send_message(embed=embed,ephemeral=True)
+                await asyncio.sleep(5)
+                await interaction.channel.delete()
+            else:
+                    embed = discord.Embed(title=f'Errore: questo canale non è un ticket', color=discord.Color.red())
+                    await interaction.response.send_message(embed=embed,ephemeral=True)
+        else:
+            embed = discord.Embed(title='Errore: Hai bisogno del permesso di `"manage roles"`', color=discord.Color.red())
+            await interaction.response.send_message(embed=embed,ephemeral=True)    
+
+
+
+
+
+class Ticket_Button(discord.ui.View):
+	def __init__(self):
+		super().__init__()
+		self.value = None
+
+	@discord.ui.button(label="Aggiungi", emoji="➕", style=discord.ButtonStyle.green)
+	async def Ticket_add(self, interaction: discord.Interaction, button: discord.ui.Button):
+		await interaction.response.send_modal(TicketModal())
+
+	@discord.ui.button(label="Rimuovi",emoji="➖", style=discord.ButtonStyle.red)
+	async def Ticket_remove(self, interaction: discord.Interaction, button: discord.ui.Button):
+		channel_id = interaction.channel.id
+		with open('ticket_channels.json', 'r') as f:
+			channels = json.load(f)
+		if str(channel_id) in channels:
+			del channels[str(channel_id)]
+		with open('ticket_channels.json', 'w') as f:
+			json.dump(channels, f)
+		embed = discord.Embed(title=f'Il sistema ticket è stato rimosso dal canale: <#{channel_id}>', color=discord.Color.red())
+		await interaction.response.send_message(embed=embed, ephemeral=True)
+		def check(msg):
+			return msg.author == client.user
+		await interaction.channel.purge(limit=100, check=check)
+
+
+@client.tree.command(name="ticketsetup", description = "Crea un sistema ticket nel server") #slash command
+async def ticketsetup(interaction: discord.Interaction):
+	if interaction.user.guild_permissions.manage_roles:
+		embed = discord.Embed(title="Ticket Setup", color=discord.Color.blue())
+		embed.add_field(name="Premi questo bottone per impostare il seguente canale come canale per aprire i ticket", value=":green_circle:",inline=True)
+		embed.add_field(name="\nPremi questo bottone per rimuovere il sistema ticket dal seguente canale", value=":red_circle:",inline=True)
+		await interaction.response.send_message(embed=embed, ephemeral=True, view=Ticket_Button())
+	else:
+		embed = discord.Embed(title='Errore: per usare questo coamndo di serve avere il permesso di: `"gestire i ruoli"`', color=discord.Color.red())
+		await interaction.response.send_message(embed=embed, ephemeral=True)
+        
+
+
+
 #--- Cose per Hosting (Non toccare fiocco)
 
 h_id = [1181630796759564358, 814224911005646888]
